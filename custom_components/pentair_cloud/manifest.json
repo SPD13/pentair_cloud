@@ -1,0 +1,16 @@
+{
+  "domain": "pentair_cloud",
+  "name": "PentairCloud",
+  "config_flow": true,
+  "documentation": "https://github.com/SPD13/pentair_cloud",
+  "requirements": ["requests-aws4auth==1.2.0","pycognito==2022.12.0"],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": [
+    "@SPD13"
+  ],
+  "iot_class": "cloud_polling",
+  "version": "1.0.0"
+}
