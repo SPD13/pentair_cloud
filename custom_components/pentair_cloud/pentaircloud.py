@@ -32,7 +32,7 @@ class PentairPumpProgram:
         self.update_running(current_value)
 
     def update_running(self, current_value: int):
-        if current_value == self.get_start_value():
+        if self.check_running(current_value):
             self.running = True
         else:
             self.running = False
@@ -50,6 +50,12 @@ class PentairPumpProgram:
         #    return 2
         # else:
         #    return 0
+
+    def check_running(self, status: int) -> bool:
+        # Return true if the status passed as a parameter indicates the program is running
+        if status == 1 or status == 3:  # 1 = Scheduled Running, 3 = Manual running
+            return True
+        return False
 
 
 class PentairDevice:
