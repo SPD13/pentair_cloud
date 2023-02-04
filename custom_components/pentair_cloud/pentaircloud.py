@@ -24,15 +24,12 @@ PROGRAM_START_MIN_SECONDS = 30  # Minimum time between two requests to start a p
 
 class PentairPumpProgram:
     def __init__(
-        self, id: int, name: str, program_type: int, current_value: int
+        self, id: int, name: str, program_type: int, running_program: int
     ) -> None:
         self.id = id
         self.name = name
         self.program_type = program_type  # 0=Schedule, 1=Interval, 2=Manual
-        self.update_running(current_value)
-
-    def update_running(self, current_value: int):
-        if self.check_running(current_value):
+        if running_program == id:
             self.running = True
         else:
             self.running = False
@@ -51,12 +48,6 @@ class PentairPumpProgram:
         # else:
         #    return 0
 
-    def check_running(self, status: int) -> bool:
-        # Return true if the status passed as a parameter indicates the program is running
-        if status == 1 or status == 3:  # 1 = Scheduled Running, 3 = Manual running
-            return True
-        return False
-
 
 class PentairDevice:
     def __init__(self, LOGGER: Logger, pentair_device_id: str, nickname: str) -> None:
@@ -69,7 +60,7 @@ class PentairDevice:
         self.programs = []
 
     def update_program(
-        self, id: int, name: str, program_type: int, current_value: int
+        self, id: int, name: str, program_type: int, running_program: int
     ) -> None:
         exists = False
         for program in self.programs:
@@ -77,7 +68,10 @@ class PentairDevice:
                 exists = True
                 program.name = name
                 program.program_type = program_type
-                program.update_running(current_value)
+                if program.id == running_program:
+                    program.running = True
+                else:
+                    program.running = False
                 if DEBUG_INFO:
                     self.LOGGER.info(
                         "Update program for device "
@@ -92,7 +86,7 @@ class PentairDevice:
                     )
         if exists == False:
             self.programs.append(
-                PentairPumpProgram(id, name, program_type, current_value)
+                PentairPumpProgram(id, name, program_type, running_program)
             )
             if DEBUG_INFO:
                 self.LOGGER.info(
@@ -276,6 +270,10 @@ class PentairCloudHub:
                     for device_response in response_data["response"]["data"]:
                         for device in self.devices:
                             if device.pentair_device_id == device_response["deviceId"]:
+                                # Check running program
+                                running_program = (
+                                    int(device_response["fields"]["s14"]["value"]) + 1
+                                )  # Index is starting at zero
                                 for i in range(
                                     1, 9
                                 ):  # Technically 14 but after 10 are active but do not show on the app, I don't know why
@@ -290,18 +288,13 @@ class PentairCloudHub:
                                                 "zp" + str(i) + "e5"
                                             ]["value"]
                                         )
-                                        current_value = int(
-                                            device_response["fields"][
-                                                "zp" + str(i) + "e10"
-                                            ]["value"]
-                                        )
                                         device.update_program(
                                             i,
                                             device_response["fields"][
                                                 "zp" + str(i) + "e2"
                                             ]["value"],
                                             program_type,
-                                            current_value,
+                                            running_program,
                                         )
 
                 except Exception as err:
