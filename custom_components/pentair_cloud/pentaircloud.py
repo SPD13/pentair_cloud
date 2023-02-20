@@ -299,8 +299,9 @@ class PentairCloudHub:
 
                 except Exception as err:
                     self.LOGGER.error(
-                        "Exception while updating Pentair Cloud (update device status). %s",
+                        "Exception while updating Pentair Cloud (update device status). %s, %s",
                         err,
+                        response_data,
                     )
             else:
                 self.LOGGER.error(
@@ -429,21 +430,21 @@ class PentairCloudHub:
                     raise Exception("Wrong response code stop program")
                 device.active_program = None
                 program.running = False
-                # Update "Last Active Program". Don't know why, but the app is doing that...
+                # Update "Last Active Program"
                 response = requests.put(
                     endpoint,
                     auth=self.get_AWS_auth(),
                     headers=self.get_pentair_header(),
-                    data='{"payload":{"p2":"1"}}',
+                    data='{"payload":{"p2":"' + str(program_id - 1) + '"}}',
                 )
             except Exception as err:
                 self.LOGGER.error(
-                    "Exception with Pentair API (Start Program). %s",
+                    "Exception with Pentair API (Stop Program). %s",
                     err,
                 )
         else:
             self.LOGGER.error(
-                "Exception while starting program (Empty token in device status)."
+                "Exception while stopping program (Empty token in device status)."
             )
 
     def authenticate(self, username: str, password: str) -> bool:
