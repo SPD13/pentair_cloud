@@ -125,6 +125,8 @@ class PentairCloudHub:
         self.AWS_SECRET_ACCESS_KEY = None
         self.AWS_SESSION_TOKEN = None
         self.last_update = None
+        self.username = None
+        self.password = None
         self.devices = []
 
     def get_cognito_client(self, usr: str) -> Cognito:
@@ -142,7 +144,6 @@ class PentairCloudHub:
                 self.populate_AWS_and_data_fields()
 
     def populate_AWS_and_data_fields(self) -> None:
-        self.populate_AWS_token()
         if self.AWS_TOKEN is not None:
             try:
                 client = boto3.client("cognito-identity", region_name=AWS_REGION)
@@ -303,6 +304,13 @@ class PentairCloudHub:
                         err,
                         response_data,
                     )
+                    try:
+                        if "timeout" in response_data["message"]:
+                            self.authenticate(
+                                self.username, self.password
+                            )  # Refresh authentication in case of timeout
+                    except:
+                        pass
             else:
                 self.LOGGER.error(
                     "Exception while updating Pentair Cloud (Empty token in device status)."
@@ -454,6 +462,8 @@ class PentairCloudHub:
             u.authenticate(password)
             self.cognito_client = u
             self.cognito_client.get_user()
+            self.username = username
+            self.password = password
             return True
 
         except Exception as err:
