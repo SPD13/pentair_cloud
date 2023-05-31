@@ -145,37 +145,30 @@ class PentairCloudHub:
 
     def populate_AWS_and_data_fields(self) -> None:
         if self.AWS_TOKEN is not None:
-            try:
-                client = boto3.client("cognito-identity", region_name=AWS_REGION)
-                # IdentityId
-                response = client.get_id(
-                    IdentityPoolId=AWS_IDENTITY_POOL_ID,
-                    Logins={
-                        AWS_COGNITO_ENDPOINT + "/" + AWS_USER_POOL_ID: self.AWS_TOKEN
-                    },
-                )
-                self.AWS_IDENTITY_ID = response["IdentityId"]
-                # Credentials for Identity
-                response = client.get_credentials_for_identity(
-                    IdentityId=self.AWS_IDENTITY_ID,
-                    Logins={
-                        AWS_COGNITO_ENDPOINT + "/" + AWS_USER_POOL_ID: self.AWS_TOKEN
-                    },
-                )
-                self.AWS_ACCESS_KEY_ID = response["Credentials"]["AccessKeyId"]
-                self.AWS_SECRET_ACCESS_KEY = response["Credentials"]["SecretKey"]
-                self.AWS_SESSION_TOKEN = response["Credentials"]["SessionToken"]
-                if DEBUG_INFO:
-                    self.LOGGER.info("Pentair Cloud complete Populate AWS Fields")
-                self.populate_pentair_devices()
-            except Exception as err:
-                self.LOGGER.error(
-                    "Exception while setting up Pentair Cloud (Populate AWS Fields). %s",
-                    err,
-                )
-        else:
+            self.populate_AWS_token()
+        try:
+            client = boto3.client("cognito-identity", region_name=AWS_REGION)
+            # IdentityId
+            response = client.get_id(
+                IdentityPoolId=AWS_IDENTITY_POOL_ID,
+                Logins={AWS_COGNITO_ENDPOINT + "/" + AWS_USER_POOL_ID: self.AWS_TOKEN},
+            )
+            self.AWS_IDENTITY_ID = response["IdentityId"]
+            # Credentials for Identity
+            response = client.get_credentials_for_identity(
+                IdentityId=self.AWS_IDENTITY_ID,
+                Logins={AWS_COGNITO_ENDPOINT + "/" + AWS_USER_POOL_ID: self.AWS_TOKEN},
+            )
+            self.AWS_ACCESS_KEY_ID = response["Credentials"]["AccessKeyId"]
+            self.AWS_SECRET_ACCESS_KEY = response["Credentials"]["SecretKey"]
+            self.AWS_SESSION_TOKEN = response["Credentials"]["SessionToken"]
+            if DEBUG_INFO:
+                self.LOGGER.info("Pentair Cloud complete Populate AWS Fields")
+            self.populate_pentair_devices()
+        except Exception as err:
             self.LOGGER.error(
-                "Exception while setting up Pentair Cloud (Empty token in populate AWS Fields)."
+                "Exception while setting up Pentair Cloud (Populate AWS Fields). %s",
+                err,
             )
 
     def get_pentair_header(self) -> str:
