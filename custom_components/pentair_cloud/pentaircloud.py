@@ -144,7 +144,7 @@ class PentairCloudHub:
                 self.populate_AWS_and_data_fields()
 
     def populate_AWS_and_data_fields(self) -> None:
-        if self.AWS_TOKEN is not None:
+        if self.AWS_TOKEN is None:
             self.populate_AWS_token()
         try:
             client = boto3.client("cognito-identity", region_name=AWS_REGION)
