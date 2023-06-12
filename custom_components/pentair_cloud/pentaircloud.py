@@ -298,12 +298,16 @@ class PentairCloudHub:
                         response_data,
                     )
                     try:
+                        self.LOGGER.error("Timeout detected. Logging Again")
                         if "timeout" in response_data["message"]:
                             self.authenticate(
                                 self.username, self.password
                             )  # Refresh authentication in case of timeout
-                    except:
-                        pass
+                    except Exception as err2:
+                        self.LOGGER.error(
+                            "ERROR in Timeout detection loop.",
+                            err2,
+                        )
             else:
                 self.LOGGER.error(
                     "Exception while updating Pentair Cloud (Empty token in device status)."
