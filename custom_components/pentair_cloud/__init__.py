@@ -15,7 +15,7 @@ from .pentaircloud import PentairCloudHub
 
 from .const import DOMAIN
 
-PLATFORMS: list[Platform] = [Platform.LIGHT]
+PLATFORMS: list[Platform] = [Platform.SWITCH]
 
 CONFIG_SCHEMA = vol.Schema(
     {

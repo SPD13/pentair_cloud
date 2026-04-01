@@ -1,4 +1,11 @@
 # pentair_cloud
+
+⚠️ This is a maintained fork of SPD13/pentair_cloud, updated to work with Home Assistant 2024 and later.
+
+The original integration stopped working due to a breaking change in Home Assistant's light platform, which now requires supported_color_modes to be declared on all light entities. This fork fixes that issue and also converts the pump programs from light entities to proper switch entities, which is more appropriate and works correctly with HomeKit Bridge and other HA automations. The underlying Pentair cloud API communication is unchanged - your credentials and device setup work exactly as before.
+
+A pull request with these changes has been submitted to the original repository. If you are on Home Assistant 2024 or later and your entities are not showing up, install from this fork instead using the HACS instructions below, substituting https://github.com/ZubairAnwar/pentair_cloud for the original repository URL.
+
 Homeassistant Pentair cloud custom integration.
 Supports the Pentair IntelliFlo 3 VS Pump with the Wifi module. This integration will create a virtual "Light" for each of the programs you have configured in your Pentair Home App. You can use this to:
 - Start/Stop a program
