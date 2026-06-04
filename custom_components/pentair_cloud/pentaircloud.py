@@ -66,6 +66,13 @@ class PentairDevice:
         self.alarm = None  # device-level alarm flag (Pentair reported)
         self.alarm_code = None  # s20 - Alarm Condition bitfield (0 = no fault)
         self.online = None  # device connectivity flag
+        # Optimistic program selection: when the user starts/stops a program we
+        # show the expected state immediately and keep it until the next real
+        # API poll confirms (or reverts) it, with a hard expiry as a backstop.
+        self.optimistic_program = None  # program id selected optimistically (None = all off)
+        self.optimistic_set_at = 0.0  # time.time() when the optimistic state was set
+        self.optimistic_expiry = 0.0  # time.time() after which optimistic state is dropped
+        self.switch_entities = []  # registered program switch entities for this device
 
     def update_sensors(self, device_response: dict) -> None:
         """Update live telemetry and status from the device status response."""
