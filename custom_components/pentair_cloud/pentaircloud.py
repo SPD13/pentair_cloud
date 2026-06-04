@@ -58,6 +58,66 @@ class PentairDevice:
         self.last_program_start = None
         self.active_program = None
         self.programs = []
+        # Live telemetry (populated from the device status response)
+        self.power_watts = None  # s18 - Current Power (watts)
+        self.motor_speed_pct = None  # s19 - Current Motor Speed (%)
+        self.flow_gpm = None  # s26 - Current Estimated Flow (gallons per minute)
+        self.pressure_psi = None  # s17 - Current Pressure (psi)
+        self.alarm = None  # device-level alarm flag (Pentair reported)
+        self.alarm_code = None  # s20 - Alarm Condition bitfield (0 = no fault)
+        self.online = None  # device connectivity flag
+        # Optimistic program selection: when the user starts/stops a program we
+        # show the expected state immediately and keep it until the next real
+        # API poll confirms (or reverts) it, with a hard expiry as a backstop.
+        self.optimistic_program = None  # program id selected optimistically (None = all off)
+        self.optimistic_set_at = 0.0  # time.time() when the optimistic state was set
+        self.optimistic_expiry = 0.0  # time.time() after which optimistic state is dropped
+        self.switch_entities = []  # registered program switch entities for this device
+
+    def update_sensors(self, device_response: dict) -> None:
+        """Update live telemetry and status from the device status response."""
+        fields = device_response.get("fields", {})
+
+        def get_value(key):
+            try:
+                return fields[key]["value"]
+            except (KeyError, TypeError):
+                return None
+
+        power = get_value("s18")
+        speed = get_value("s19")
+        flow = get_value("s26")
+        pressure = get_value("s17")
+        alarm_code = get_value("s20")
+        # Power is reported directly in watts; speed and flow are in tenths.
+        self.power_watts = int(power) if power is not None else None
+        self.motor_speed_pct = float(speed) / 10 if speed is not None else None
+        self.flow_gpm = float(flow) / 10 if flow is not None else None
+        # s17 is reported in hundredths of a psi (raw 2851 -> 28.51 psi, confirmed
+        # against a live pump). Note: the pypentair library divides by 10 instead,
+        # which is incorrect for the IF31.
+        self.pressure_psi = float(pressure) / 100 if pressure is not None else None
+        self.alarm_code = int(alarm_code) if alarm_code is not None else None
+        # Device-level flags live at the top of the response, not in "fields".
+        self.alarm = device_response.get("alarm")
+        self.online = device_response.get("online")
+        if DEBUG_INFO:
+            self.LOGGER.info(
+                "Pentair telemetry for "
+                + self.pentair_device_id
+                + ": power="
+                + str(self.power_watts)
+                + "W speed="
+                + str(self.motor_speed_pct)
+                + "% flow="
+                + str(self.flow_gpm)
+                + "GPM pressure="
+                + str(self.pressure_psi)
+                + "psi alarm="
+                + str(self.alarm)
+                + " code="
+                + str(self.alarm_code)
+            )
 
     def update_program(
         self, id: int, name: str, program_type: int, running_program: int
@@ -264,6 +324,8 @@ class PentairCloudHub:
                     for device_response in response_data["response"]["data"]:
                         for device in self.devices:
                             if device.pentair_device_id == device_response["deviceId"]:
+                                # Update live telemetry (power, speed, flow, etc.)
+                                device.update_sensors(device_response)
                                 # Check running program
                                 running_program = (
                                     int(device_response["fields"]["s14"]["value"]) + 1

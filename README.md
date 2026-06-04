@@ -7,13 +7,43 @@ The original integration stopped working due to a breaking change in Home Assist
 A pull request with these changes has been submitted to the original repository. If you are on Home Assistant 2024 or later and your entities are not showing up, install from this fork instead using the HACS instructions below, substituting https://github.com/ZubairAnwar/pentair_cloud for the original repository URL.
 
 Homeassistant Pentair cloud custom integration.
-Supports the Pentair IntelliFlo 3 VS Pump with the Wifi module. This integration will create a virtual "Light" for each of the programs you have configured in your Pentair Home App. You can use this to:
+Supports the Pentair IntelliFlo 3 VS Pump with the Wifi module. This integration creates a **switch** for each of the programs you have configured in your Pentair Home App, plus a set of **sensors** for live pump telemetry. You can use this to:
 - Start/Stop a program
 - Know when a program is running
+- Monitor live power, speed, flow and pressure
+- React to pump alarms and connectivity loss
+
 Data is pulled from the Pentair Web service used by the Pentair Home App.
 Note: This project is not associated with or endorsed by Pentair.
 
 Example Scenario: I have a Program in my Pentair Home App for when I want to run my pool cleaner. My pool cleaner is connected to a sonoff relay. Using this integration, I can detect when the pump is running the "cleaner program" and turn on the pool cleaner.
+
+## Entities
+
+For every compatible pump (`IF31` / IntelliFlo3 VSF) the integration creates:
+
+**Switches** — one per configured program: start/stop the program and see whether it is currently running.
+
+**Sensors** — live telemetry, refreshed on each poll (~60s):
+
+| Entity | Unit | Source field | Notes |
+|--------|------|--------------|-------|
+| Power | W | `s18` | Current power draw (feeds the Energy dashboard) |
+| Speed | % | `s19` | Current motor speed (of max RPM) |
+| Flow | gal/min | `s26` | Current estimated flow (GPM) |
+| Pressure | psi | `s17` | Current pressure |
+| Alarm code | — | `s20` | Numeric fault bitfield (`0` = no fault), diagnostic |
+
+**Binary sensors:**
+
+| Entity | Device class | Source | Notes |
+|--------|--------------|--------|-------|
+| Alarm | problem | `alarm` flag / `s20` | On when the pump reports an alarm; `alarm_code` is exposed as an attribute |
+| Connectivity | connectivity | `online` flag | On when the pump is reachable, diagnostic |
+
+> Note: the Pentair cloud API only exposes the *current* alarm state — there is no
+> alert-history endpoint. To keep a history, use the Home Assistant logbook/history
+> of the Alarm sensor.
 ## Installation with HACS
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/custom-components/hacs)
