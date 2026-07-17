@@ -63,7 +63,6 @@ class PentairDevice:
         self.motor_speed_pct = None  # s19 - Current Motor Speed (%)
         self.flow_gpm = None  # s26 - Current Estimated Flow (gallons per minute)
         self.pressure_psi = None  # s17 - Current Pressure (psi)
-        self.alarm = None  # device-level alarm flag (Pentair reported)
         self.alarm_code = None  # s20 - Alarm Condition bitfield (0 = no fault)
         self.online = None  # device connectivity flag
         # Optimistic program selection: when the user starts/stops a program we
@@ -99,7 +98,6 @@ class PentairDevice:
         self.pressure_psi = float(pressure) / 100 if pressure is not None else None
         self.alarm_code = int(alarm_code) if alarm_code is not None else None
         # Device-level flags live at the top of the response, not in "fields".
-        self.alarm = device_response.get("alarm")
         self.online = device_response.get("online")
         if DEBUG_INFO:
             self.LOGGER.info(
@@ -113,9 +111,7 @@ class PentairDevice:
                 + str(self.flow_gpm)
                 + "GPM pressure="
                 + str(self.pressure_psi)
-                + "psi alarm="
-                + str(self.alarm)
-                + " code="
+                + "psi alarm_code="
                 + str(self.alarm_code)
             )
 

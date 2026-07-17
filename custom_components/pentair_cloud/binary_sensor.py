@@ -33,12 +33,10 @@ BINARY_SENSOR_TYPES: tuple[PentairBinarySensorEntityDescription, ...] = (
         key="alarm",
         name="Alarm",
         device_class=BinarySensorDeviceClass.PROBLEM,
-        # The device-level "alarm" flag is what Pentair reports; the numeric
-        # fault bits are exposed separately as the "Alarm code" sensor.
+        # s20 (alarm_code) is the authoritative fault bitfield: 0 = no fault.
+        # The numeric code is also exposed separately as the "Alarm code" sensor.
         value_fn=lambda device: (
-            bool(device.alarm) or bool(device.alarm_code)
-            if device.alarm is not None or device.alarm_code is not None
-            else None
+            device.alarm_code != 0 if device.alarm_code is not None else None
         ),
     ),
     PentairBinarySensorEntityDescription(
