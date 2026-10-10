@@ -404,8 +404,18 @@ class PentairCloudHub:
                     + " on device "
                     + deviceId
                 )
-            if device.active_program is not None:  # Stop previous program
-                self.stop_program(deviceId, device.active_program)
+            if device.active_program is not None:
+                # Live-swap: mark the old program stopped LOCALLY only, without
+                # sending an explicit stop_program() API call. The pump's own
+                # firmware handles the transition as a smooth in-place profile
+                # swap when a new program is enabled directly (confirmed by
+                # physical observation: the official Pentair app does not stop
+                # /restart the pump when switching between two running
+                # programs - only this integration's prior stop-then-start
+                # sequence forced a hard ~30s restart).
+                for old_program in device.programs:
+                    if old_program.id == device.active_program:
+                        old_program.running = False
             device.last_program_start = time.time()
             self.populate_AWS_token()
             if self.AWS_TOKEN is not None:
