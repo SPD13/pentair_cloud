@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import logging
-import asyncio
 from typing import Any
 
 import voluptuous as vol
@@ -16,7 +15,6 @@ from .pentaircloud import PentairCloudHub
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-loop = asyncio.get_event_loop()
 
 # TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = vol.Schema(
