@@ -20,6 +20,7 @@ PENTAIR_DEVICES_2_PATH = "/device2/device2-service/user/device"
 PENTAIR_DEVICE_SERVICE_PATH = "/device/device-service/user/device/"
 UPDATE_MIN_SECONDS = 60  # Minimum time between two update requests
 PROGRAM_START_MIN_SECONDS = 30  # Minimum time between two requests to start a program
+REQUEST_TIMEOUT = 30  # Seconds before an HTTP request to the Pentair Cloud API is aborted
 
 
 class PentairPumpProgram:
@@ -252,6 +253,7 @@ class PentairCloudHub:
                     endpoint,
                     auth=self.get_AWS_auth(),
                     headers=self.get_pentair_header(),
+                    timeout=REQUEST_TIMEOUT,
                 )
                 for device in response.json()["data"]:
                     if device["deviceType"] == "IF31":
@@ -314,6 +316,7 @@ class PentairCloudHub:
                         endpoint,
                         auth=self.get_AWS_auth(),
                         headers=self.get_pentair_header(),
+                        timeout=REQUEST_TIMEOUT,
                         data=devices_json,
                     )
                     response_data = response.json()
@@ -426,6 +429,7 @@ class PentairCloudHub:
                         endpoint,
                         auth=self.get_AWS_auth(),
                         headers=self.get_pentair_header(),
+                        timeout=REQUEST_TIMEOUT,
                         data='{"payload":{"zp'
                         + str(program_id)
                         + 'e10":"'
@@ -442,6 +446,7 @@ class PentairCloudHub:
                         endpoint,
                         auth=self.get_AWS_auth(),
                         headers=self.get_pentair_header(),
+                        timeout=REQUEST_TIMEOUT,
                         data='{"payload":{"p2":"99"}}',
                     )
                 except Exception as err:
@@ -492,6 +497,7 @@ class PentairCloudHub:
                     endpoint,
                     auth=self.get_AWS_auth(),
                     headers=self.get_pentair_header(),
+                    timeout=REQUEST_TIMEOUT,
                     data='{"payload":{"zp'
                     + str(program_id)
                     + 'e10":"'
@@ -508,6 +514,7 @@ class PentairCloudHub:
                     endpoint,
                     auth=self.get_AWS_auth(),
                     headers=self.get_pentair_header(),
+                    timeout=REQUEST_TIMEOUT,
                     data='{"payload":{"p2":"' + str(program_id - 1) + '"}}',
                 )
             except Exception as err:
