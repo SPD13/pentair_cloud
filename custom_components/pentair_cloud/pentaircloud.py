@@ -258,6 +258,18 @@ class PentairCloudHub:
                 for device in response.json()["data"]:
                     if device["deviceType"] == "IF31":
                         if device["status"] == "ACTIVE":
+                            # The API can list the same device more than once;
+                            # a duplicate would create every entity twice.
+                            if any(
+                                d.pentair_device_id == device["deviceId"]
+                                for d in self.devices
+                            ):
+                                if DEBUG_INFO:
+                                    self.LOGGER.info(
+                                        "Skipping duplicate device:"
+                                        + device["deviceId"]
+                                    )
+                                continue
                             self.devices.append(
                                 PentairDevice(
                                     self.LOGGER,
