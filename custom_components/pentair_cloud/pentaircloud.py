@@ -21,6 +21,7 @@ PENTAIR_DEVICE_SERVICE_PATH = "/device/device-service/user/device/"
 UPDATE_MIN_SECONDS = 60  # Minimum time between two update requests
 PROGRAM_START_MIN_SECONDS = 30  # Minimum time between two requests to start a program
 REQUEST_TIMEOUT = 30  # Seconds before an HTTP request to the Pentair Cloud API is aborted
+AWS_CREDENTIALS_REFRESH_MARGIN = 300  # Refresh AWS credentials this many seconds before they expire
 
 
 class PentairPumpProgram:
@@ -181,6 +182,7 @@ class PentairCloudHub:
         self.AWS_ACCESS_KEY_ID = None
         self.AWS_SECRET_ACCESS_KEY = None
         self.AWS_SESSION_TOKEN = None
+        self.aws_credentials_expiry = None  # Unix time; None means no valid credentials
         self.last_update = None
         self.username = None
         self.password = None
@@ -194,15 +196,33 @@ class PentairCloudHub:
 
     def populate_AWS_token(self) -> None:
         if self.cognito_client is not None:
+            # check_token() renews the Cognito tokens when the access token has
+            # expired. The id token is then read from the client itself: calling
+            # get_user() here would add a GetUser API round-trip on every poll and
+            # eventually trip Cognito's rate limit (TooManyRequestsException).
             self.cognito_client.check_token()
-            new_token = self.cognito_client.get_user()._metadata["id_token"]
+            new_token = self.cognito_client.id_token
             if self.AWS_TOKEN != new_token:  # Token has been refreshed
                 self.AWS_TOKEN = new_token
-                self.populate_AWS_and_data_fields()
+                self.populate_AWS_credentials()
+            elif self.aws_credentials_expiring():
+                # AWS credentials can expire while the id token is still valid
+                self.populate_AWS_credentials()
+
+    def aws_credentials_expiring(self) -> bool:
+        return (
+            self.aws_credentials_expiry is None
+            or time.time()
+            > self.aws_credentials_expiry - AWS_CREDENTIALS_REFRESH_MARGIN
+        )
 
     def populate_AWS_and_data_fields(self) -> None:
-        if self.AWS_TOKEN is None:
-            self.populate_AWS_token()
+        self.populate_AWS_token()
+        if self.aws_credentials_expiry is not None:
+            self.populate_pentair_devices()
+
+    def populate_AWS_credentials(self) -> None:
+        self.aws_credentials_expiry = None
         try:
             client = boto3.client("cognito-identity", region_name=AWS_REGION)
             # IdentityId
@@ -219,9 +239,11 @@ class PentairCloudHub:
             self.AWS_ACCESS_KEY_ID = response["Credentials"]["AccessKeyId"]
             self.AWS_SECRET_ACCESS_KEY = response["Credentials"]["SecretKey"]
             self.AWS_SESSION_TOKEN = response["Credentials"]["SessionToken"]
+            self.aws_credentials_expiry = response["Credentials"][
+                "Expiration"
+            ].timestamp()
             if DEBUG_INFO:
                 self.LOGGER.info("Pentair Cloud complete Populate AWS Fields")
-            self.populate_pentair_devices()
         except Exception as err:
             self.LOGGER.error(
                 "Exception while setting up Pentair Cloud (Populate AWS Fields). %s",
